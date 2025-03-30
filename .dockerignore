@@ -1,0 +1,12 @@
+__pycache__
+.prisma
+.env
+node_modules
+.git
+.gitignore
+*.sqlite
+*.pyc
+*.pyo
+*.log
+*.db
+*.DS_Store

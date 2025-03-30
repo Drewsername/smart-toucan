@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           Int          @id @default(autoincrement())
+  email        String       @unique
+  tasks        Task[]
+  redemptions  Redemption[]
+}
+
+model Task {
+  id        Int    @id @default(autoincrement())
+  title     String
+  completed Boolean @default(false)
+  points    Int
+  user      User   @relation(fields: [userId], references: [id])
+  userId    Int
+}
+
+model Reward {
+  id          Int          @id @default(autoincrement())
+  name        String
+  cost        Int
+  redemptions Redemption[]
+}
+
+model Redemption {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  reward    Reward   @relation(fields: [rewardId], references: [id])
+  rewardId  Int
+  createdAt DateTime @default(now())
+}
