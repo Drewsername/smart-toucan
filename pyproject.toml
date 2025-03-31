@@ -1,20 +1,8 @@
-[project]
-name = "toucan"
-version = "0.1.0"
-description = ""
-authors = [
-    {name = "Drew Bermudez",email = "drewtbermudez@gmail.com"}
-]
-readme = "README.md"
-requires-python = ">=3.10"
-dependencies = [
-]
-
 [tool.poetry]
 name = "toucan"
 version = "0.1.0"
 description = "Task and reward management app for couples"
-authors = ["Your Name <you@example.com>"]
+authors = ["Drew Bermudez <drewtbermudez@gmail.com>"]
 readme = "README.md"
 packages = [{ include = "app" }]
 
