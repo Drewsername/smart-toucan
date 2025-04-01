@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Manager Tester</title>
+  <!-- Add Supabase JS Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    :root {
+      --primary-color: #007bff;
+      --secondary-color: #6c757d;
+      --success-color: #28a745;
+      --danger-color: #dc3545;
+      --warning-color: #ffc107;
+      --info-color: #17a2b8;
+      --light-color: #f8f9fa;
+      --dark-color: #343a40;
+      --border-color: #dee2e6;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --border-radius: 0.25rem;
+      --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: #f4f7f9;
+      margin: 0;
+      padding: 0;
+      color: var(--dark-color);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      flex-grow: 1;
+    }
+
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 15px 0;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    header h1 {
+        margin: 0;
+        font-size: 1.75rem;
+    }
+
+    h2 {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+      margin-top: 0;
+      margin-bottom: 20px;
+      color: var(--primary-color);
+      font-size: 1.5rem;
+    }
+
+    .auth-section, .create-section, .tasks-section, .actions-section, .output-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background-color: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+    }
+     .auth-section, .tasks-section, .actions-section, .output-section {
+         background-color: transparent;
+         border: none;
+         box-shadow: none;
+         padding: 0;
+     }
+
+    .input-group {
+      margin-bottom: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .input-group label {
+        flex-basis: 120px;
+        text-align: right;
+        margin-right: 5px;
+        font-weight: 500;
+    }
+
+    .input-group input[type="email"],
+    .input-group input[type="password"],
+    .input-group input[type="text"],
+    .input-group input[type="number"],
+    .input-group select,
+    .input-group textarea {
+      flex-grow: 1;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      min-width: 150px;
+    }
+    .input-group textarea {
+        min-height: 60px;
+        resize: vertical;
+    }
+    .input-group input[type="checkbox"] {
+        flex-grow: 0;
+        min-width: auto;
+        margin-left: 5px;
+    }
+    .input-group .checkbox-label {
+        flex-basis: auto;
+        text-align: left;
+        margin-right: 10px;
+        order: -1;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background-color 0.2s ease;
+      color: white;
+      margin-right: 5px;
+    }
+     button:last-child {
+         margin-right: 0;
+     }
+
+    .btn-primary { background-color: var(--primary-color); }
+    .btn-primary:hover { background-color: #0056b3; }
+
+    .btn-secondary { background-color: var(--secondary-color); color: white; }
+    .btn-secondary:hover { background-color: #5a6268; }
+
+    .btn-success { background-color: var(--success-color); }
+    .btn-success:hover { background-color: #218838; }
+
+    .btn-danger { background-color: var(--danger-color); }
+    .btn-danger:hover { background-color: #c82333; }
+
+    .btn-warning { background-color: var(--warning-color); color: #212529; }
+    .btn-warning:hover { background-color: #e0a800; }
+
+    .btn-info { background-color: var(--info-color); }
+    .btn-info:hover { background-color: #138496; }
+
+     .btn-sm {
+        padding: 5px 10px;
+        font-size: 0.875rem;
+     }
+
+    #authStatus {
+      font-style: italic;
+      color: var(--secondary-color);
+      word-break: break-all;
+      margin-top: 10px;
+      display: block;
+    }
+
+    #taskList {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .task-card {
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      background-color: var(--light-color);
+      padding: 15px;
+      box-shadow: var(--box-shadow);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .task-card .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .task-card .task-title {
+      font-weight: bold;
+      font-size: 1.15rem;
+      color: var(--dark-color);
+      margin-bottom: 5px;
+      flex-grow: 1;
+    }
+
+    .task-card .task-id {
+        font-size: 0.8rem;
+        color: var(--secondary-color);
+        margin-left: 10px;
+    }
+
+    .task-card .task-status {
+        padding: 3px 8px;
+        border-radius: var(--border-radius);
+        font-size: 0.8rem;
+        font-weight: bold;
+        color: white;
+        white-space: nowrap;
+    }
+
+    .status-PENDING { background-color: var(--warning-color); color: #212529; }
+    .status-ACCEPTED { background-color: var(--info-color); }
+    .status-PENDING_VALIDATION { background-color: var(--info-color); opacity: 0.8; }
+    .status-COMPLETED { background-color: var(--success-color); }
+    .status-DECLINED { background-color: var(--danger-color); }
+    .status-EXPIRED { background-color: var(--secondary-color); }
+    .status-FAILED { background-color: var(--danger-color); }
+
+
+    .task-card .task-details {
+      font-size: 0.9rem;
+      color: #495057;
+      margin-bottom: 15px;
+      flex-grow: 1;
+    }
+    .task-card .task-details p {
+        margin: 5px 0;
+    }
+     .task-card .task-details strong {
+        color: var(--dark-color);
+     }
+
+    .task-card .task-actions {
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+     .task-card .task-actions span {
+        font-size: 0.9rem;
+        color: var(--secondary-color);
+        font-style: italic;
+     }
+
+    #output {
+      margin-top: 30px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 20px;
+    }
+    #output h2 {
+        margin-bottom: 10px;
+    }
+    #output pre {
+      background-color: #e9ecef;
+      padding: 15px;
+      border-radius: var(--border-radius);
+      font-size: 0.85rem;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+    }
+
+    .loading-indicator {
+        text-align: center;
+        padding: 20px;
+        font-style: italic;
+        color: var(--secondary-color);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 700px) {
+        .input-group {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .input-group label {
+            text-align: left;
+            margin-bottom: 5px;
+            flex-basis: auto;
+        }
+        .input-group .checkbox-label {
+           order: 0;
+           margin-left: 0;
+        }
+    }
+     @media (max-width: 600px) {
+        .container {
+            width: 95%;
+            padding: 15px;
+        }
+        #taskList {
+            grid-template-columns: 1fr;
+        }
+    }
+
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Task Manager API Tester</h1>
+  </header>
+
+  <div class="container">
+
+    <section class="auth-section">
+      <h2>Authentication</h2>
+      <div class="input-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" placeholder="user@example.com">
+      </div>
+      <div class="input-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password" placeholder="Your Password">
+      </div>
+      <div>
+          <button onclick="login()" class="btn-primary">Login</button>
+          <button onclick="signup()" class="btn-secondary">Sign Up</button>
+      </div>
+      <span id="authStatus">Not logged in</span>
+      <span id="userIdDisplay" style="display: block; font-size: 0.8em; color: var(--secondary-color); margin-top: 5px;"></span>
+    </section>
+
+    <!-- Section for Creating Rewards -->
+    <section class="create-section" id="createRewardSection">
+        <h2>Create New Reward</h2>
+         <div class="input-group">
+            <label for="newRewardTitle">Title:</label>
+            <input type="text" id="newRewardTitle" name="title" placeholder="e.g., Movie Night">
+         </div>
+         <div class="input-group">
+            <label for="newRewardDesc">Description:</label>
+            <textarea id="newRewardDesc" name="description" placeholder="Details about the reward"></textarea>
+         </div>
+         <div class="input-group">
+            <label for="newRewardPoints">Points Cost:</label>
+            <input type="number" id="newRewardPoints" name="points" placeholder="e.g., 100" value="100">
+         </div>
+         <!-- Add more fields as needed (category, limits, etc.) -->
+         <button onclick="createReward()" class="btn-success">Create Reward</button>
+    </section>
+
+     <!-- Section for Creating Tasks -->
+    <section class="create-section" id="createTaskSection">
+        <h2>Create New Task</h2>
+         <div class="input-group">
+            <label for="newTaskTitle">Title:</label>
+            <input type="text" id="newTaskTitle" name="title" placeholder="e.g., Wash Dishes">
+         </div>
+         <div class="input-group">
+            <label for="newTaskDesc">Description:</label>
+            <textarea id="newTaskDesc" name="description" placeholder="Details about the task"></textarea>
+         </div>
+         <div class="input-group">
+             <label for="newTaskPoints">Points Award:</label>
+             <input type="number" id="newTaskPoints" name="flatAwardPoints" placeholder="e.g., 50" value="50">
+         </div>
+          <div class="input-group">
+             <label for="newTaskPenalty">Penalty Points:</label>
+             <input type="number" id="newTaskPenalty" name="failurePenaltyPoints" placeholder="e.g., 10" value="10">
+         </div>
+         <div class="input-group">
+            <label class="checkbox-label" for="newTaskBiddable">Is Biddable?</label>
+            <input type="checkbox" id="newTaskBiddable" name="isBiddable">
+             <label for="newTaskReservation" style="margin-left: 20px;">Reservation Price:</label> <!-- Sub-label -->
+             <input type="number" id="newTaskReservation" name="reservationPrice" placeholder="e.g., 20 (optional)">
+         </div>
+         <!-- Add more fields as needed (time limits, visibility etc.) -->
+         <button onclick="createTask()" class="btn-success">Create Task</button>
+    </section>
+
+
+    <section class="tasks-section">
+      <h2>My Tasks</h2>
+      <button onclick="loadTasks()" class="btn-secondary">Refresh Tasks</button>
+      <div id="taskList"><p class="loading-indicator">Login to load tasks.</p></div>
+    </section>
+
+    <section class="actions-section">
+        <h2>Other Actions (Bidding)</h2>
+         <div class="input-group">
+            <label for="taskIdForBid">Task ID:</label>
+            <input type="text" id="taskIdForBid" placeholder="Task ID for Bidding">
+        </div>
+        <div class="input-group">
+            <label for="bidValue">Bid Amount:</label>
+            <input type="number" id="bidValue" placeholder="Points to bid">
+        </div>
+        <button onclick="bidOnTask()" class="btn-warning">Place Bid</button>
+    </section>
+
+
+    <section class="output-section">
+      <h2>API Response</h2>
+      <pre id="result">Output will appear here...</pre>
+    </section>
+
+  </div>
+
+<script>
+    // Initialize Supabase client
+  const client = supabase.createClient(
+    'https://waezjhkesgfbpdxuzlry.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhZXpqaGtlc2dmYnBkeHV6bHJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3MjM5MjYsImV4cCI6MjA1NjI5OTkyNn0._ecOfP6-n498BQUh9KJYmTvnBk7hlSi-ukAAJEYLymk'
+  );
+    const api = "http://localhost:8000/api"; // Use absolute URL
+    let currentTasks = [];
+    let currentUserId = null; // Variable to store the logged-in user's ID
+
+    function show(data, type = 'info') {
+      const resultPre = document.getElementById("result");
+      resultPre.textContent = JSON.stringify(data, null, 2);
+      resultPre.style.borderColor = type === 'error' ? 'var(--danger-color)' : type === 'success' ? 'var(--success-color)' : 'var(--border-color)';
+    }
+
+    function setLoading(isLoading, elementId = 'taskList', message = 'Loading...') {
+        const element = document.getElementById(elementId);
+        if (element) {
+            const target = element.querySelector('.loading-indicator-target') || element;
+            if (isLoading) {
+                if (!target.querySelector('.loading-indicator')) {
+                     const p = document.createElement('p');
+                     p.className = 'loading-indicator';
+                     p.textContent = message;
+                     target.appendChild(p);
+                } else {
+                    target.querySelector('.loading-indicator').textContent = message;
+                }
+            } else {
+                 const indicator = target.querySelector('.loading-indicator');
+                 if (indicator) {
+                     indicator.remove();
+                 }
+            }
+        }
+        const scope = elementId ? document.getElementById(elementId) || document : document;
+        scope.querySelectorAll('button').forEach(btn => btn.disabled = isLoading);
+  }
+
+  async function getUserId() {
+        const { data: { user }, error } = await client.auth.getUser();
+        if (error || !user) {
+            console.error("Error getting user:", error);
+            currentUserId = null;
+            document.getElementById("userIdDisplay").textContent = '';
+            return null;
+        }
+        currentUserId = user.id;
+        document.getElementById("userIdDisplay").textContent = `User ID: ${currentUserId.substring(0, 8)}...`;
+        return currentUserId;
+    }
+
+    async function getToken() {
+      const { data: { session }, error } = await client.auth.getSession();
+      if (error) {
+          console.error("Error getting session:", error);
+          show({ error: "Error getting authentication session." }, 'error');
+           document.getElementById("authStatus").textContent = "Session Error";
+           document.getElementById("userIdDisplay").textContent = '';
+           currentUserId = null;
+          throw new Error("Session error");
+      }
+      if (!session?.access_token) {
+          show({ error: "Not logged in or session expired. Please log in." }, 'error');
+          document.getElementById("authStatus").textContent = "Not logged in";
+          document.getElementById("userIdDisplay").textContent = '';
+          currentUserId = null;
+          throw new Error("Not authenticated");
+      }
+      document.getElementById("authStatus").textContent = `Logged In (User: ${session.user.email})`;
+      await getUserId();
+      return session.access_token;
+  }
+
+  async function signup() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+      setLoading(true, 'auth-section', 'Signing up...');
+      try {
+    const { data, error } = await client.auth.signUp({ email, password });
+          if (error) throw error;
+          show({ message: "Signup successful! Check your email for verification.", details: data }, 'success');
+          document.getElementById("authStatus").textContent = "Signup successful, please verify email.";
+          document.getElementById("userIdDisplay").textContent = '';
+          currentUserId = null;
+      } catch (error) {
+          console.error("Signup error:", error);
+          show({ error: `Signup failed: ${error.message}` }, 'error');
+          document.getElementById("authStatus").textContent = "Signup failed";
+          document.getElementById("userIdDisplay").textContent = '';
+          currentUserId = null;
+      } finally {
+          setLoading(false, 'auth-section');
+      }
+  }
+
+  async function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+      setLoading(true, 'auth-section', 'Logging in...');
+      try {
+          const { data: { session }, error } = await client.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          if (!session) throw new Error("Login succeeded but no session returned.");
+
+          await getToken();
+          show({ message: "Login successful!" }, 'success');
+          await loadTasks();
+      } catch (error) {
+          console.error("Login error:", error);
+          show({ error: `Login failed: ${error.message}` }, 'error');
+          document.getElementById("authStatus").textContent = "Login failed";
+          document.getElementById("userIdDisplay").textContent = '';
+          currentUserId = null;
+          document.getElementById("taskList").innerHTML = '<p class="loading-indicator">Login failed. Cannot load tasks.</p>';
+      } finally {
+          setLoading(false, 'auth-section');
+      }
+    }
+
+    async function handleGenericAction(actionFn, payloadFn, actionName, loadingElementId, successCallback) {
+        let token;
+        try {
+            token = await getToken();
+        } catch (error) { return; }
+
+        let payload;
+        try {
+             payload = payloadFn();
+        } catch(error) {
+            show({ error: `Input error for ${actionName}: ${error.message}` }, 'error');
+            return;
+        }
+
+        setLoading(true, loadingElementId, `${actionName}...`);
+        try {
+            const data = await actionFn(token, payload);
+            show(data, 'success');
+            if (typeof successCallback === 'function') {
+                await successCallback(data);
+            }
+        } catch (error) {
+            console.error(`${actionName} error:`, error);
+            show({ error: `${actionName} failed: ${error.message}` }, 'error');
+        } finally {
+            setLoading(false, loadingElementId);
+        }
+    }
+
+    function getCreateRewardPayload() {
+        const title = document.getElementById('newRewardTitle').value;
+        if (!title) throw new Error("Reward title is required.");
+        return {
+            title: title,
+            description: document.getElementById('newRewardDesc').value || "",
+            points: parseInt(document.getElementById('newRewardPoints').value, 10) || 0,
+        categoryId: null,
+        redemptionUnit: "points",
+        redemptionUnitStepSize: 1,
+        priceScalingFunction: "linear",
+        scalingFactor: 1.0,
+            dailyLimit: null,
+            weeklyLimit: null,
+            monthlyLimit: null,
+            yearlyLimit: null,
+            isUnlimited: true,
+        visible: true,
+        unlocked: true
+        };
+    }
+    async function createRewardApi(token, payload) {
+        const res = await fetch(`${api}/rewards`, {
+            method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error(`Create Reward failed: ${res.status} ${res.statusText}`);
+        return await res.json();
+    }
+    function createReward() {
+        handleGenericAction(createRewardApi, getCreateRewardPayload, 'Creating Reward', 'createRewardSection');
+    }
+
+    function getCreateTaskPayload() {
+        const title = document.getElementById('newTaskTitle').value;
+        if (!title) throw new Error("Task title is required.");
+        const reservationPriceStr = document.getElementById('newTaskReservation').value;
+        return {
+            title: title,
+            description: document.getElementById('newTaskDesc').value || "",
+            flatAwardPoints: parseInt(document.getElementById('newTaskPoints').value, 10) || 0,
+            failurePenaltyPoints: parseInt(document.getElementById('newTaskPenalty').value, 10) || 0,
+            isBiddable: document.getElementById('newTaskBiddable').checked,
+            reservationPrice: document.getElementById('newTaskBiddable').checked && reservationPriceStr ? parseInt(reservationPriceStr, 10) : null,
+            hasTimeLimit: false,
+            timerStartMode: "onAccept",
+            isVisible: true,
+            bonusPercentage: 0,
+            timeLimit: null,
+            acceptanceWindow: 60
+        };
+    }
+    async function createTaskApi(token, payload) {
+        const res = await fetch(`${api}/tasks`, {
+      method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error(`Create Task failed: ${res.status} ${res.statusText}`);
+        return await res.json();
+    }
+    function createTask() {
+        handleGenericAction(createTaskApi, getCreateTaskPayload, 'Creating Task', 'createTaskSection', loadTasks);
+    }
+
+    async function loadTasks() {
+      let token;
+      try {
+          token = await getToken();
+          if (!currentUserId) throw new Error("User ID not available.");
+      } catch (error) {
+          document.getElementById("taskList").innerHTML = '<p class="loading-indicator">Login required to load tasks.</p>';
+          return;
+      }
+
+      setLoading(true, 'taskList', 'Loading tasks...');
+      try {
+    const res = await fetch(`${api}/tasks`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+        if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.status} ${res.statusText}`);
+        currentTasks = await res.json();
+        setLoading(false, 'taskList');
+        renderTasks();
+        show({ message: `Loaded ${currentTasks.length} tasks.`}, 'info');
+      } catch (error) {
+         console.error("Load tasks error:", error);
+         show({ error: `Failed to load tasks: ${error.message}` }, 'error');
+         setLoading(false, 'taskList');
+         document.getElementById("taskList").innerHTML = `<p class="loading-indicator" style="color: var(--danger-color);">Error loading tasks: ${error.message}</p>`;
+         currentTasks = [];
+      }
+    }
+
+    function renderTasks() {
+        const container = document.getElementById("taskList");
+    container.innerHTML = "";
+
+        if (!currentUserId) {
+             container.innerHTML = "<p class='loading-indicator'>Cannot render tasks: User ID unknown.</p>";
+             return;
+        }
+
+        if (currentTasks.length === 0) {
+            container.innerHTML = "<p class='loading-indicator'>No tasks found.</p>";
+      return;
+    }
+
+        currentTasks.forEach(task => {
+      const card = document.createElement("div");
+      card.className = "task-card";
+            const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleString() : 'N/A';
+
+            const creatorDisplay = task.creatorId === currentUserId ? `You (${task.creatorId.substring(0,4)}...)` : `${task.creatorId.substring(0, 8)}...`;
+            const recipientDisplay = task.recipientId === currentUserId ? `You (${task.recipientId.substring(0,4)}...)` : `${task.recipientId.substring(0, 8)}...`;
+
+
+      card.innerHTML = `
+                <div class="task-header">
+                    <span class="task-title">${task.title || 'Untitled Task'}</span>
+                    <span class="task-status status-${task.status}">${task.status}</span>
+                </div>
+                 <p class="task-id">ID: ${task.id.substring(0, 8)}...</p>
+                <div class="task-details">
+                    <p><strong>Description:</strong> ${task.description || 'No description'}</p>
+                    <p><strong>Creator:</strong> ${creatorDisplay}</p>
+                    <p><strong>Recipient:</strong> ${recipientDisplay}</p>
+                    <p><strong>Created:</strong> ${formatDate(task.createdAt)}</p>
+                    ${task.acceptanceDeadline ? `<p><strong>Accept By:</strong> ${formatDate(task.acceptanceDeadline)}</p>` : ''}
+                    ${task.acceptedAt ? `<p><strong>Accepted:</strong> ${formatDate(task.acceptedAt)}</p>` : ''}
+                    ${task.declinedAt ? `<p><strong>Declined:</strong> ${formatDate(task.declinedAt)}</p>` : ''}
+                    ${task.completedAt ? `<p><strong>Completed:</strong> ${formatDate(task.completedAt)}</p>` : ''}
+                    ${task.flatAwardPoints ? `<p><strong>Points:</strong> ${task.flatAwardPoints}</p>` : ''}
+                    ${task.isBiddable ? `<p><strong>Biddable:</strong> Yes (Reservation: ${task.reservationPrice ?? 'None'})</p>` : ''}
+                </div>
+                <div class="task-actions">
+                    ${renderTaskActions(task, currentUserId)}
+                </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+    function renderTaskActions(task, userId) {
+        let buttons = '';
+
+        if (task.recipientId === userId) {
+            if (task.status === 'PENDING') {
+                buttons += `<button onclick="acceptTask('${task.id}')" class="btn-success btn-sm">Accept</button>`;
+                buttons += `<button onclick="declineTask('${task.id}')" class="btn-danger btn-sm">Decline</button>`;
+            } else if (task.status === 'ACCEPTED') {
+                buttons += `<button onclick="requestValidation('${task.id}')" class="btn-primary btn-sm">Mark Complete (Req Validation)</button>`;
+            } else if (task.status === 'PENDING_VALIDATION') {
+                buttons += `<span>Awaiting partner validation...</span>`;
+            }
+        }
+
+        if (task.creatorId === userId) {
+             buttons += `<button onclick="deleteTask('${task.id}')" class="btn-danger btn-sm">Delete Task</button>`;
+
+             if (task.status === 'PENDING_VALIDATION') {
+                 buttons += `<button onclick="validateTask('${task.id}')" class="btn-success btn-sm">Validate Completion</button>`;
+             }
+              const nonCompletableStatuses = ['COMPLETED', 'EXPIRED', 'FAILED'];
+              if (!nonCompletableStatuses.includes(task.status)) {
+                 buttons += `<button onclick="forceCompleteTask('${task.id}')" class="btn-warning btn-sm">Force Complete</button>`;
+             }
+        }
+
+
+        if (buttons === '') {
+             buttons += `<span>No actions available for you on this task.</span>`;
+        }
+        return buttons;
+    }
+
+    async function handleTaskAction(actionFn, taskId, actionName) {
+        const getPayload = () => taskId;
+        await handleGenericAction(
+            async (token, id) => actionFn(token, id),
+            getPayload,
+            actionName,
+            'taskList',
+            loadTasks
+        );
+    }
+
+    async function acceptTaskApi(token, taskId) {
+         const res = await fetch(`${api}/tasks/${taskId}/accept`, {
+            method: "POST", headers: { Authorization: `Bearer ${token}` } });
+          if (!res.ok) throw new Error(`${res.status} ${res.statusText}`); return await res.json(); }
+    async function declineTaskApi(token, taskId) {
+         const res = await fetch(`${api}/tasks/${taskId}/recipient/decline`, {
+            method: "POST", headers: { Authorization: `Bearer ${token}` } });
+          if (!res.ok) throw new Error(`${res.status} ${res.statusText}`); return await res.json(); }
+    async function requestValidationApi(token, taskId) {
+         const res = await fetch(`${api}/tasks/${taskId}/recipient/complete`, {
+            method: "POST", headers: { Authorization: `Bearer ${token}` } });
+           if (!res.ok) throw new Error(`${res.status} ${res.statusText}`); return await res.json(); }
+    async function deleteTaskApi(token, taskId) {
+         const res = await fetch(`${api}/tasks/${taskId}`, {
+            method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+          if (!res.ok && res.status !== 204) throw new Error(`${res.status} ${res.statusText}`);
+          return res.status === 204 ? { message: "Task deleted" } : await res.json(); }
+    async function forceCompleteTaskApi(token, taskId) {
+         const res = await fetch(`${api}/tasks/${taskId}/creator/complete`, {
+            method: "POST", headers: { Authorization: `Bearer ${token}` } });
+          if (!res.ok) throw new Error(`${res.status} ${res.statusText}`); return await res.json(); }
+    async function validateTaskApi(token, taskId) {
+         const res = await fetch(`${api}/tasks/${taskId}/creator/validate`, {
+            method: "POST", headers: { Authorization: `Bearer ${token}` } });
+          if (!res.ok) throw new Error(`${res.status} ${res.statusText}`); return await res.json(); }
+
+    function acceptTask(taskId) { handleTaskAction(acceptTaskApi, taskId, 'Accepting'); }
+    function declineTask(taskId) { handleTaskAction(declineTaskApi, taskId, 'Declining'); }
+    function requestValidation(taskId) { handleTaskAction(requestValidationApi, taskId, 'Requesting Validation'); }
+    function deleteTask(taskId) { handleTaskAction(deleteTaskApi, taskId, 'Deleting'); }
+    function forceCompleteTask(taskId) { handleTaskAction(forceCompleteTaskApi, taskId, 'Forcing Complete'); }
+    function validateTask(taskId) { handleTaskAction(validateTaskApi, taskId, 'Validating Completion'); }
+
+    function getBidPayload() {
+        const id = document.getElementById('taskIdForBid').value;
+        const bid = parseInt(document.getElementById('bidValue').value, 10);
+        if (!id) throw new Error("Task ID for bid is required.");
+        if (isNaN(bid) || bid <= 0) throw new Error("Invalid bid amount.");
+        return { taskId: id, bidValue: bid };
+    }
+    async function bidOnTaskApi(token, payload) {
+        const { taskId, bidValue } = payload;
+        const res = await fetch(`${api}/tasks/${taskId}/bid?bid=${bidValue}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+        if (!res.ok) throw new Error(`Bid failed: ${res.status} ${res.statusText}`);
+        return await res.json();
+    }
+    function bidOnTask() {
+        handleGenericAction(bidOnTaskApi, getBidPayload, 'Placing Bid', 'actions-section', loadTasks);
+    }
+
+    window.addEventListener('load', async () => {
+        try {
+            await getToken();
+        } catch (error) {
+            console.log("Not logged in on page load.");
+        }
+    });
+
+</script>
+
+</body>
+</html>

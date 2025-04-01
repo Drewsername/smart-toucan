@@ -1,24 +1,16 @@
-# app/logic/health_manager.py
 import os
 import time
-from app.core.db import prisma
+from app.core.db import check_db_health
 
 SERVER_START_TIME = time.time()
 
 class HealthCheckManager:
-    def __init__(self):
-        self._prisma = prisma
-
     async def check_database(self) -> dict:
-        try:
-            await self._prisma.execute_raw("SELECT 1;")
-            return {"database": "connected"}
-        except Exception as e:
-            return {"database": "disconnected", "error": str(e)}
+        return await check_db_health()
 
     def get_uptime(self) -> str:
-        seconds = int(time.time() - SERVER_START_TIME)
-        hours, remainder = divmod(seconds, 3600)
+        uptime_seconds = int(time.time() - SERVER_START_TIME)
+        hours, remainder = divmod(uptime_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         return f"{hours}h {minutes}m {seconds}s"
 
@@ -31,8 +23,8 @@ class HealthCheckManager:
     async def get_health_report(self) -> dict:
         db_status = await self.check_database()
         return {
-            "status": "ok" if db_status["database"] == "connected" else "error",
+            "status": "ok" if db_status.get("database") == "connected" else "error",
             "services": db_status,
             "uptime": self.get_uptime(),
-            "meta": self.get_metadata()
+            "meta": self.get_metadata(),
         }

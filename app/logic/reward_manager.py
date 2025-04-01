@@ -1,38 +1,128 @@
+from datetime import datetime
+from typing import List
 from fastapi import HTTPException
 from app.logic.base_manager import BaseManager
 
 class RewardManager(BaseManager):
-    def __init__(self, user_id: int):
-        super().__init__(user_id)
-        self.reward = None
 
-    async def load_reward(self, reward_id: int):
-        self.reward = await self._prisma.reward.find_unique(where={"id": reward_id})
-        if not self.reward:
-            raise HTTPException(status_code=404, detail="Reward not found")
+    async def create_reward(self, reward_data: dict) -> dict:
+        user = await self.get_user_or_403(refresh=True)
+        if not user.partnerId:
+            raise HTTPException(status_code=400, detail="You must be paired to create rewards.")
 
-    async def get_total_points(self) -> int:
-        tasks = await self._prisma.task.find_many(where={
-            "userId": self.user_id, "completed": True
-        })
-        return sum(task.points for task in tasks)
+        reward_data["creatorId"] = self.user_id
+        reward_data["recipientId"] = user.partnerId
 
-    async def get_spent_points(self) -> int:
-        redemptions = await self._prisma.redemption.find_many(
-            where={"userId": self.user_id},
-            include={"reward": True}
+        created = await self._prisma.reward.create(
+            data=reward_data,
+            include={"creator": True, "recipient": True, "redemptions": True}
         )
-        return sum(r.reward.cost for r in redemptions)
+        await self.log_action("created_reward", {"reward_id": created.id})
+        return self.serialize(created)
 
-    async def redeem(self):
-        await self.validate_user()
-        await self.log_action("attempting_reward_redemption", {"reward_id": self.reward.id})
-        total = await self.get_total_points()
-        spent = await self.get_spent_points()
-        if (total - spent) < self.reward.cost:
-            raise HTTPException(status_code=400, detail="Not enough points")
-        await self._prisma.redemption.create(data={
-            "userId": self.user_id, "rewardId": self.reward.id
+    async def update_reward(self, reward_id: str, data: dict) -> dict:
+        await self.get_user_or_403()
+        try:
+            updated = await self._prisma.reward.update(
+                where={"id_creatorId": {"id": reward_id, "creatorId": self.user_id}},
+                data=data,
+                include={"creator": True, "recipient": True}
+            )
+            await self.log_action("updated_reward", {"reward_id": reward_id})
+            return self.serialize(updated)
+        except Exception as e:
+            if "Record to update not found" in str(e):
+                raise HTTPException(status_code=404, detail="Reward not found or not authorized")
+            raise
+
+    async def delete_reward(self, reward_id: str) -> dict:
+        await self.get_user_or_403()
+        reward = await self._prisma.reward.find_unique(where={"id": reward_id})
+        if not reward or reward.creatorId != self.user_id:
+            raise HTTPException(status_code=404, detail="Reward not found or not authorized")
+
+        deleted = await self._prisma.reward.delete(where={"id": reward_id})
+        await self.log_action("deleted_reward", {"reward_id": reward_id})
+        return self.serialize(deleted)
+
+    async def get_reward_by_id(self, reward_id: str) -> dict:
+        user = await self.get_user_or_403()
+        reward = await self._prisma.reward.find_first(
+            where={
+                "id": reward_id,
+                "OR": [
+                    {"creatorId": self.user_id},
+                    {"recipientId": self.user_id}
+                ]
+            },
+            include={"creator": True, "recipient": True, "redemptions": True}
+        )
+        if not reward:
+            raise HTTPException(status_code=404, detail="Reward not found or not authorized")
+        if reward.creatorId != self.user_id and reward.recipientId != user.partnerId:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        return self.serialize(reward)
+
+    async def list_rewards_for_user(self) -> List[dict]:
+        user = await self.get_user_or_403()
+        rewards = await self._prisma.reward.find_many(
+            where={
+                "OR": [
+                    {"creatorId": self.user_id},
+                    {"recipientId": self.user_id}
+                ]
+            },
+            include={"creator": True, "recipient": True, "redemptions": True},
+            take=50
+        )
+        return [r for r in self.serialize_many(rewards) if r["creatorId"] == self.user_id or r["recipientId"] == user.partnerId]
+
+    async def list_rewards_for_partner(self) -> List[dict]:
+        user = await self.get_user_or_403()
+        rewards = await self._prisma.reward.find_many(
+            where={"recipientId": self.user_id},
+            include={"creator": True, "recipient": True, "redemptions": True},
+            take=50
+        )
+        return [r for r in self.serialize_many(rewards) if r["creatorId"] == user.partnerId]
+
+    async def redeem_reward(self, reward_id: str) -> dict:
+        user = await self.get_user_or_403()
+        async with self._prisma.tx() as tx:
+            reward = await tx.reward.find_unique(
+                where={"id": reward_id},
+                include={"redemptions": True}
+            )
+            if not reward:
+                raise HTTPException(status_code=404, detail="Reward not found")
+            if reward.recipientId != self.user_id:
+                raise HTTPException(status_code=403, detail="Not authorized")
+            if reward.creatorId != user.partnerId:
+                raise HTTPException(status_code=403, detail="You are not currently paired to the reward creator")
+
+            if not reward.isUnlimited:
+                today = datetime.now().date()
+                redemptions_today = sum(
+                    r.createdAt.date() == today for r in reward.redemptions
+                )
+                if reward.dailyLimit and redemptions_today >= reward.dailyLimit:
+                    raise HTTPException(status_code=400, detail="Daily redemption limit reached")
+
+            redemption = await tx.redemption.create(
+                data={"userId": self.user_id, "rewardId": reward_id}
+            )
+
+            updated = await tx.reward.update(
+                where={"id": reward_id},
+                data={
+                    "totalRedemptions": reward.totalRedemptions + 1,
+                    "redeemedAt": datetime.now()
+                },
+                include={"creator": True, "recipient": True, "redemptions": True}
+            )
+
+        await self.log_action("redeemed_reward", {
+            "reward_id": reward_id,
+            "redemption_id": redemption.id
         })
-        await self.log_action("reward_redeemed", {"reward_id": self.reward.id})
-        return {"message": "Reward redeemed!"}
+        return self.serialize(updated)

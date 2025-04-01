@@ -9,34 +9,119 @@ datasource db {
 }
 
 model Profile {
-  id        String   @id // Matches auth.users.id (UUID)
-  email     String   @unique
-  tasks     Task[]
-  redemptions Redemption[]
+  id              String    @id @default(uuid())
   createdAt DateTime @default(now())
+  email           String    @unique
+  partnerId       String?   @unique
+  partner         Profile?  @relation("UserPartner", fields: [partnerId], references: [id])
+  partnerOf       Profile[] @relation("UserPartner")
+
+  rewards         Reward[]  @relation("RewardRecipient")
+  createdRewards  Reward[]  @relation("RewardCreator")
+  redemptions     Redemption[]
+  pairingCodes    PairingCode[]
+
+  sentTasks       Task[]    @relation("TaskCreator")
+  receivedTasks   Task[]    @relation("TaskRecipient")
 }
 
-model Task {
-  id        Int     @id @default(autoincrement())
-  title     String
-  completed Boolean @default(false)
-  points    Int
+
+model PairingCode {
+  id        String   @id @default(uuid())
+  code      String   @unique
   userId    String
-  user      Profile @relation(fields: [userId], references: [id])
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user Profile @relation(fields: [userId], references: [id])
+  
+  // Add indexes for common query patterns
+  @@index([userId, used, createdAt])
+  @@index([code])
 }
 
 model Reward {
-  id          Int          @id @default(autoincrement())
-  name        String
-  cost        Int
+  id            String        @id @default(uuid())
+  title         String
+  description   String?
+  points        Int
+  creatorId     String
+  recipientId   String?
+  categoryId    String?
+  redemptionUnit           String
+  redemptionUnitStepSize  Int
+  priceScalingFunction    String
+  scalingFactor           Float
+  dailyLimit              Int?
+  weeklyLimit             Int?
+  monthlyLimit            Int?
+  yearlyLimit             Int?
+  isUnlimited             Boolean
+  visible                 Boolean
+  unlocked                Boolean
+  totalRedemptions        Int     @default(0)
+  redeemedAt              DateTime?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  creator     Profile    @relation("RewardCreator", fields: [creatorId], references: [id])
+  recipient   Profile?   @relation("RewardRecipient", fields: [recipientId], references: [id])
   redemptions Redemption[]
+  @@unique([id, creatorId])
+
 }
 
 model Redemption {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   userId    String
-  user      Profile  @relation(fields: [userId], references: [id])
-  rewardId  Int
-  reward    Reward   @relation(fields: [rewardId], references: [id])
+  rewardId  String
   createdAt DateTime @default(now())
+
+  user   Profile @relation(fields: [userId], references: [id])
+  reward Reward  @relation(fields: [rewardId], references: [id])
 }
+
+enum TaskStatus {
+  PENDING     // hasn't been accepted or declined yet
+  ACCEPTED
+  DECLINED
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+model Task {
+  id                    String   @id @default(uuid())
+  title                 String
+  description           String
+  hasTimeLimit          Boolean
+  timerStartMode        String
+  isVisible             Boolean
+  hint                  String?
+  bonusPercentage       Int
+  isBiddable            Boolean
+  reservationPrice      Int?
+  flatAwardPoints       Int?
+  timeLimit             Int?
+  acceptanceWindow      Int?
+  acceptanceDeadline    DateTime?
+  failurePenaltyPoints  Int
+  status                TaskStatus
+
+  creatorId             String
+  recipientId           String
+
+  creator   Profile @relation("TaskCreator", fields: [creatorId], references: [id])
+  recipient Profile @relation("TaskRecipient", fields: [recipientId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  acceptedAt            DateTime?
+  declinedAt            DateTime?
+  completedAt           DateTime?
+}
+
+
+
+

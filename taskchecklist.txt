@@ -1,0 +1,42 @@
+Update Prisma Schema
+Add a new Reward model matching the frontend Reward interface:
+
+UUID id
+
+title, description, points, creator_id, recipient_id, category_id, redemption_unit, redemption_unit_step_size, price_scaling_function, scaling_factor, daily_limit, weekly_limit, monthly_limit, yearly_limit, is_unlimited, visible, unlocked, total_redemptions, redeemed, redeemed_at, created_at, updated_at
+
+Add any necessary foreign key relationships (e.g. Profile for creator_id / recipient_id)
+
+Run prisma db push to apply schema updates
+
+2. Create RewardManager Service
+Implement a RewardManager class (e.g., in app/logic/reward_manager.py) to:
+
+create_reward(data)
+
+update_reward(id, data)
+
+delete_reward(id)
+
+get_reward_by_id(id)
+
+list_rewards_for_user(user_id)
+
+list_rewards_for_partner(user_id)
+
+redeem_reward(id, user_id) (enforce redemption rules & limits)
+
+3. Add API Endpoints (FastAPI)
+POST /rewards/ → create a reward
+
+PUT /rewards/{id} → update a reward
+
+DELETE /rewards/{id} → delete a reward
+
+GET /rewards/{id} → get single reward
+
+GET /rewards/ → list current user's rewards (both created and assigned)
+
+GET /rewards/partner → list partner’s rewards
+
+POST /rewards/{id}/redeem → redeem a reward

@@ -1,34 +1,48 @@
 import os
 import httpx
+import time
+import logging
 from fastapi import Request, HTTPException
-from app.core.db import prisma  # Assuming you're using prisma-client-py
+from app.core.db import prisma
 
+logger = logging.getLogger(__name__)
+
+# Cache user authentication results
+_auth_cache = {}
+_AUTH_CACHE_TIMEOUT = 300  # 5 minutes
 
 async def get_current_user_id(request: Request) -> str:
     SUPABASE_URL = os.getenv("SUPABASE_URL")
     SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 
-    if not SUPABASE_URL:
-        raise HTTPException(status_code=500, detail="SUPABASE_URL environment variable is not set")
-    if not SUPABASE_ANON_KEY:
-        raise HTTPException(status_code=500, detail="SUPABASE_ANON_KEY environment variable is not set")
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        raise HTTPException(status_code=500, detail="Missing Supabase configuration")
 
     auth_header = request.headers.get("authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
 
     token = auth_header.replace("Bearer ", "")
+    
+    # Check if token is in cache
+    cached = _auth_cache.get(token)
+    now = time.time()
+    
+    if cached and (now - cached['timestamp'] < _AUTH_CACHE_TIMEOUT):
+        return cached['user_id']
 
-    async with httpx.AsyncClient() as client:
-        res = await client.get(
-            f"{SUPABASE_URL}/auth/v1/user",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "apikey": SUPABASE_ANON_KEY,
-            }
-        )
-
-    print("Supabase response:", res.status_code, res.text)
+    # Token not in cache, validate with Supabase
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            res = await client.get(
+                f"{SUPABASE_URL}/auth/v1/user",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "apikey": SUPABASE_ANON_KEY,
+                }
+            )
+        except httpx.TimeoutException:
+            raise HTTPException(status_code=503, detail="Authentication service unavailable")
 
     if res.status_code != 200:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
@@ -41,9 +55,24 @@ async def get_current_user_id(request: Request) -> str:
 
     email = user.get("email")
 
-    # Ensure a Profile exists in your DB
+    # Check if profile exists - without using select parameter
     profile = await prisma.profile.find_unique(where={"id": user_id})
+    
     if not profile:
+        # Create profile if it doesn't exist
         await prisma.profile.create(data={"id": user_id, "email": email})
 
+    # Update cache
+    _auth_cache[token] = {
+        'user_id': user_id,
+        'timestamp': now
+    }
+    
+    # Cleanup old cache entries if cache is too large
+    if len(_auth_cache) > 1000:
+        # Remove oldest entries
+        sorted_keys = sorted(_auth_cache.keys(), key=lambda k: _auth_cache[k]['timestamp'])
+        for key in sorted_keys[:200]:  # Remove oldest 200 entries
+            del _auth_cache[key]
+    
     return user_id
