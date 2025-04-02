@@ -1,22 +1,96 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss" source("../");
 
 @layer base {
-  html {
-    color-scheme: light dark;
+  :root {
+    /* Toucan Brand Colors */
+    --background: 12 100% 95%; /* Light Coral */
+    --foreground: 222.2 47.4% 11.2%; /* Charcoal */
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+
+    --primary: 36 100% 50%; /* Toucan Yellow/Orange Beak */
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 180 40% 70%; /* Teal Accent */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 340 100% 85%; /* Pinky Coral Hover */
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 22 15% 85%; /* Soft Coral Border */
+    --input: 22 15% 85%;
+    --ring: 222.2 47.4% 11.2%;
+
+    --radius: 1rem;
   }
 
-  * {
-    @apply border-gray-200 dark:border-gray-800;
+  .dark {
+    --background: 222.2 47.4% 11.2%;
+    --foreground: 36 100% 50%;
+
+    --card: 222.2 47.4% 11.2%;
+    --card-foreground: 36 100% 50%;
+
+    --popover: 222.2 47.4% 11.2%;
+    --popover-foreground: 36 100% 50%;
+
+    --primary: 36 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 180 30% 40%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 340 60% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 40%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222.2 20% 25%;
+    --input: 222.2 20% 25%;
+    --ring: 36 100% 50%;
   }
 
-  html,
   body {
-    @apply text-gray-900 bg-gray-50 dark:bg-gray-950 dark:text-gray-200;
+    @apply bg-background text-foreground;
   }
+}
 
-  .using-mouse * {
-    outline: none !important;
-  }
+@theme {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-sm: calc(var(--radius) - 8px);
 }

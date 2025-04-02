@@ -1,3 +1,6 @@
+import { LoginForm } from "@/components/login-form"
+import { Button } from "@/components/ui/button"
+
 export function Auth({
   actionText,
   onSubmit,
@@ -10,48 +13,24 @@ export function Auth({
   afterSubmit?: React.ReactNode
 }) {
   return (
-    <div className="fixed inset-0 bg-white dark:bg-black flex items-start justify-center p-8">
-      <div className="bg-white dark:bg-gray-900 p-8 rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold mb-4">{actionText}</h1>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            onSubmit(e)
-          }}
-          className="space-y-4"
+    <div className="fixed inset-0 bg-background text-foreground flex items-start justify-center p-8">
+      <LoginForm
+        className="w-full max-w-md"
+        onSubmit={(e) => {
+          e.preventDefault()
+          onSubmit(e)
+        }}
+      >
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={status === 'pending'}
+          variant="default"
         >
-          <div>
-            <label htmlFor="email" className="block text-xs">
-              Username
-            </label>
-            <input
-              type="email"
-              name="email"
-              id="email"
-              className="px-2 py-1 w-full rounded border border-gray-500/20 bg-white dark:bg-gray-800"
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="block text-xs">
-              Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              id="password"
-              className="px-2 py-1 w-full rounded border border-gray-500/20 bg-white dark:bg-gray-800"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-cyan-600 text-white rounded py-2 font-black uppercase"
-            disabled={status === 'pending'}
-          >
-            {status === 'pending' ? '...' : actionText}
-          </button>
-          {afterSubmit ? afterSubmit : null}
-        </form>
-      </div>
+          {status === 'pending' ? '...' : actionText}
+        </Button>
+        {afterSubmit}
+      </LoginForm>
     </div>
   )
 }

@@ -1,11 +1,9 @@
 from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 
-# Removed Prisma and get_db imports as manager handles db access
 from app.logic.notification_manager import NotificationManager
 from app.schemas.notification import Notification
-from app.dependencies.auth import get_current_user_id # Corrected dependency import
-# Removed User schema import as dependency returns str
+from app.dependencies.auth import get_current_user_id 
 
 router = APIRouter(
     prefix="/notifications",

@@ -10,7 +10,7 @@ import { createServerFn } from '@tanstack/react-start'
 import * as React from 'react'
 import { DefaultCatchBoundary } from '../components/DefaultCatchBoundary'
 import { NotFound } from '../components/NotFound'
-import appCss from '../styles/app.css?url'
+import '../styles/app.css'
 import { seo } from '../utils/seo'
 import { getSupabaseServerClient } from '../utils/supabase'
 
@@ -42,7 +42,6 @@ export const Route = createRootRoute({
       }),
     ],
     links: [
-      { rel: 'stylesheet', href: appCss },
       {
         rel: 'apple-touch-icon',
         sizes: '180x180',
