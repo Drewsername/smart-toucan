@@ -279,6 +279,62 @@
         color: var(--secondary-color);
     }
 
+    /* Notification Section Styles */
+    .notifications-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background-color: transparent; /* Match other sections */
+      border: none; /* Match other sections */
+      box-shadow: none; /* Match other sections */
+    }
+
+    #notificationList {
+      margin-top: 20px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      padding: 15px;
+      background-color: var(--light-color);
+      min-height: 100px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .notification-item {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+     .notification-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+     }
+
+    .notification-item p {
+        margin: 2px 0;
+        font-size: 0.9rem;
+    }
+    .notification-item strong {
+        color: var(--dark-color);
+    }
+    .notification-item .read-status {
+        font-weight: bold;
+    }
+    .notification-item .read-status.unread {
+        color: var(--info-color);
+    }
+     .notification-item .read-status.read {
+        color: var(--secondary-color);
+     }
+
+    .notification-item .mark-read-btn {
+        margin-left: auto; /* Push button to the right */
+        flex-shrink: 0; /* Prevent button from shrinking */
+    }
+
     /* Responsive adjustments */
     @media (max-width: 700px) {
         .input-group {
@@ -401,6 +457,14 @@
         <button onclick="bidOnTask()" class="btn-warning">Place Bid</button>
     </section>
 
+    <section class="notifications-section">
+        <h2>Notifications</h2>
+        <button id="refreshNotificationsBtn" onclick="loadNotifications()" class="btn-secondary">Refresh Notifications</button>
+        <button id="markAllReadBtn" onclick="markAllNotificationsRead()" class="btn-warning">Mark All Read</button>
+        <div id="notificationList">
+            <p class="loading-indicator">Click 'Refresh Notifications' to load.</p>
+        </div>
+    </section>
 
     <section class="output-section">
       <h2>API Response</h2>
@@ -518,6 +582,7 @@
           await getToken();
           show({ message: "Login successful!" }, 'success');
           await loadTasks();
+          await loadNotifications(); // Load notifications after successful login
       } catch (error) {
           console.error("Login error:", error);
           show({ error: `Login failed: ${error.message}` }, 'error');
@@ -800,11 +865,122 @@
         handleGenericAction(bidOnTaskApi, getBidPayload, 'Placing Bid', 'actions-section', loadTasks);
     }
 
+    // --- Notification Functions ---
+
+    async function loadNotifications() {
+        let token;
+        try {
+            token = await getToken();
+        } catch (error) {
+            document.getElementById("notificationList").innerHTML = '<p class="loading-indicator">Login required to load notifications.</p>';
+            return;
+        }
+
+        setLoading(true, 'notificationList', 'Loading notifications...');
+        try {
+            const res = await fetch(`${api}/notifications/`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error(`Failed to fetch notifications: ${res.status} ${res.statusText}`);
+            const notifications = await res.json();
+            renderNotifications(notifications);
+            show({ message: `Loaded ${notifications.length} notifications.`}, 'info');
+        } catch (error) {
+            console.error("Load notifications error:", error);
+            show({ error: `Failed to load notifications: ${error.message}` }, 'error');
+            document.getElementById("notificationList").innerHTML = `<p class="loading-indicator" style="color: var(--danger-color);">Error loading notifications: ${error.message}</p>`;
+        } finally {
+            setLoading(false, 'notificationList');
+        }
+    }
+
+    function renderNotifications(notifications) {
+        const container = document.getElementById("notificationList");
+        container.innerHTML = ""; // Clear previous content
+
+        if (!Array.isArray(notifications)) {
+             container.innerHTML = "<p class='loading-indicator' style='color: var(--danger-color);'>Error: Invalid notification data received.</p>";
+             console.error("Invalid notification data:", notifications);
+             return;
+        }
+
+        if (notifications.length === 0) {
+            container.innerHTML = "<p class='loading-indicator'>No notifications found.</p>";
+            return;
+        }
+
+        const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleString() : 'N/A';
+
+        notifications.forEach(notification => {
+            const itemDiv = document.createElement("div");
+            itemDiv.className = "notification-item";
+
+            const detailsDiv = document.createElement("div");
+            detailsDiv.innerHTML = `
+                <p><strong>Type:</strong> ${notification.type || 'N/A'}</p>
+                <p><strong>Message:</strong> ${notification.message || 'No message'}</p>
+                <p><strong>Created:</strong> ${formatDate(notification.createdAt)}</p>
+                <p><strong>Status:</strong> <span class="read-status ${notification.isRead ? 'read' : 'unread'}">${notification.isRead ? 'Read' : 'Unread'}</span></p>
+                <p style="font-size: 0.7em; color: grey;">ID: ${notification.id}</p>
+            `;
+
+            itemDiv.appendChild(detailsDiv);
+
+            if (!notification.isRead) {
+                const markReadBtn = document.createElement("button");
+                markReadBtn.textContent = "Mark Read";
+                markReadBtn.className = "btn-info btn-sm mark-read-btn";
+                markReadBtn.onclick = () => markNotificationRead(notification.id);
+                itemDiv.appendChild(markReadBtn);
+            }
+
+            container.appendChild(itemDiv);
+        });
+    }
+
+    async function markNotificationRead(notificationId) {
+        const actionFn = async (token, id) => {
+            const res = await fetch(`${api}/notifications/${id}/read`, {
+                method: "PATCH",
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error(`Mark Read failed: ${res.status} ${res.statusText}`);
+            return await res.json();
+        };
+        const payloadFn = () => notificationId;
+        await handleGenericAction(actionFn, payloadFn, 'Marking Notification Read', 'notificationList', loadNotifications);
+    }
+
+    async function markAllNotificationsRead() {
+        const actionFn = async (token) => {
+            const res = await fetch(`${api}/notifications/read-all`, {
+                method: "PATCH",
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error(`Mark All Read failed: ${res.status} ${res.statusText}`);
+            return await res.json();
+        };
+        const payloadFn = () => ({}); // No payload needed
+        await handleGenericAction(actionFn, payloadFn, 'Marking All Notifications Read', 'notificationList', loadNotifications);
+    }
+
+    // --- End Notification Functions ---
+
     window.addEventListener('load', async () => {
         try {
             await getToken();
+            // If getToken succeeds, load initial data
+            await loadTasks();
+            await loadNotifications(); // Load notifications on page load if logged in
         } catch (error) {
             console.log("Not logged in on page load.");
+            // Ensure lists show login required message if token fails
+             document.getElementById("taskList").innerHTML = '<p class="loading-indicator">Login required to load tasks.</p>';
+             // Check if notificationList exists before trying to set its innerHTML
+             const notificationListElement = document.getElementById("notificationList");
+             if (notificationListElement) {
+                notificationListElement.innerHTML = '<p class="loading-indicator">Login required to load notifications.</p>';
+             }
         }
     });
 
