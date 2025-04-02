@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.core.db import connect_db, disconnect_db, prisma
-from app.api.routes import reward_routes, health_routes, pairing_routes, task_routes
+from app.api.routes import reward_routes, health_routes, pairing_routes, task_routes, notification_routes
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import asyncio
@@ -50,3 +50,4 @@ app.include_router(reward_routes.router, prefix="/api")
 app.include_router(health_routes.router, prefix="/api")
 app.include_router(pairing_routes.router, prefix="/api")
 app.include_router(task_routes.router, prefix="/api")
+app.include_router(notification_routes.router, prefix="/api")

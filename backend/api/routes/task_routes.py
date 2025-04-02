@@ -2,6 +2,8 @@
 from fastapi import APIRouter, Depends
 from typing import List
 from app.logic.task_manager import TaskManager
+from app.dependencies.auth import verify_cron_key
+from app.logic.notification_manager import NotificationManager
 from app.dependencies.auth import get_current_user_id
 from app.schemas.task import TaskCreate, TaskUpdate, TaskOut
 
@@ -109,3 +111,16 @@ async def creator_force_complete_task(
 ):
     manager = TaskManager(current_user_id)
     return await manager.creator_force_complete(task_id)
+
+@router.post("/check-expired", response_model=list[TaskOut], dependencies=[Depends(verify_cron_key)])
+async def check_expired_tasks():
+    """Check for and process expired tasks"""
+    task_manager = TaskManager("system")  # System user for cron jobs
+    expired_tasks = await task_manager.find_expired_tasks()
+    for task in expired_tasks:
+        await task_manager.mark_task_expired(task.id)
+        # Create notifications
+        notification_manager = NotificationManager("system")
+        await notification_manager.create_task_expired_notification(task)
+    return expired_tasks
+

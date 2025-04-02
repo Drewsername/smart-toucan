@@ -1,13 +1,16 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 from app.logic.base_manager import BaseManager
+from app.logic.notification_manager import NotificationManager
+from app.schemas.notification import NotificationCreate
 import hashlib
 import base64
 import time
 
 
 class PairingManager(BaseManager):
-    def __init__(self, user_id: str):
-        super().__init__(user_id)
+    def __init__(self, db: Depends, user_id: str | None = None):
+        super().__init__(db, user_id)
+        self.notification_manager = NotificationManager(db, user_id)
 
     def _hash_to_code(self, input_str: str) -> str:
         hash_bytes = hashlib.sha256(input_str.encode()).digest()
@@ -54,6 +57,26 @@ class PairingManager(BaseManager):
         BaseManager.invalidate_user_cache(record.userId)
 
         await self.log_action("paired_with_user", {"partner_id": record.userId})
+        # Notify both users
+        try:
+            # Notify the user who used the code
+            await self.notification_manager.create_notification(
+                NotificationCreate(
+                    userId=self.user_id,
+                    type="PAIRING_SUCCESS",
+                    message=f"You successfully paired with user ID {record.userId}." # Consider fetching username later
+                )
+            )
+            # Notify the user whose code was used
+            await self.notification_manager.create_notification(
+                NotificationCreate(
+                    userId=record.userId,
+                    type="PAIRING_SUCCESS",
+                    message=f"User ID {self.user_id} paired with you using your code." # Consider fetching username later
+                )
+            )
+        except Exception as e:
+            print(f"Error creating pairing success notifications: {e}") # Replace with proper logging
         return {"message": "Paired successfully"}
 
     async def unpair(self) -> dict:
@@ -73,4 +96,15 @@ class PairingManager(BaseManager):
         BaseManager.invalidate_user_cache(partner_id)
 
         await self.log_action("unpaired")
+        # Notify the former partner
+        try:
+            await self.notification_manager.create_notification(
+                NotificationCreate(
+                    userId=partner_id,
+                    type="UNPAIRED",
+                    message=f"User ID {self.user_id} has unpaired from you." # Consider fetching username later
+                )
+            )
+        except Exception as e:
+            print(f"Error creating unpair notification for partner {partner_id}: {e}") # Replace with proper logging
         return {"message": "Unpaired successfully"}

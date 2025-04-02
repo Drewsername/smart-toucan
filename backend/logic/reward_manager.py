@@ -1,9 +1,13 @@
 from datetime import datetime
 from typing import List
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 from app.logic.base_manager import BaseManager
-
+from app.logic.notification_manager import NotificationManager
+from app.schemas.notification import NotificationCreate
 class RewardManager(BaseManager):
+    def __init__(self, db: Depends, user_id: str | None = None):
+        super().__init__(db, user_id)
+        self.notification_manager = NotificationManager(db, user_id)
 
     async def create_reward(self, reward_data: dict) -> dict:
         user = await self.get_user_or_403(refresh=True)
@@ -18,6 +22,17 @@ class RewardManager(BaseManager):
             include={"creator": True, "recipient": True, "redemptions": True}
         )
         await self.log_action("created_reward", {"reward_id": created.id})
+        # Notify recipient
+        try:
+            await self.notification_manager.create_notification(
+                NotificationCreate(
+                    userId=user.partnerId,
+                    type="NEW_REWARD",
+                    message=f"Your partner created a new reward: '{created.title}'"
+                )
+            )
+        except Exception as e:
+            print(f"Error creating notification for new reward {created.id}: {e}") # Replace with proper logging
         return self.serialize(created)
 
     async def update_reward(self, reward_id: str, data: dict) -> dict:
@@ -125,4 +140,15 @@ class RewardManager(BaseManager):
             "reward_id": reward_id,
             "redemption_id": redemption.id
         })
+        # Notify creator
+        try:
+            await self.notification_manager.create_notification(
+                NotificationCreate(
+                    userId=reward.creatorId,
+                    type="REWARD_REDEEMED",
+                    message=f"Your partner redeemed the reward: '{reward.title}'"
+                )
+            )
+        except Exception as e:
+            print(f"Error creating notification for redeemed reward {reward.id}: {e}") # Replace with proper logging
         return self.serialize(updated)

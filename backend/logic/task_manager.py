@@ -1,10 +1,14 @@
 from datetime import datetime, timedelta, timezone
 from typing import List
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 from app.logic.base_manager import BaseManager
 from app.schemas.task import TaskStatus
-
+from app.logic.notification_manager import NotificationManager
+from app.schemas.notification import NotificationCreate
 class TaskManager(BaseManager):
+    def __init__(self, user_id: str):
+        super().__init__(user_id)
+        self.notification_manager = NotificationManager(user_id)
 
     async def create_task(self, data: dict) -> dict:
         profile = await self.get_user_or_403()
@@ -28,6 +32,18 @@ class TaskManager(BaseManager):
         )
 
         await self.log_action("created_task", {"task_id": new_task.id})
+        # Notify recipient
+        try:
+            await self.notification_manager.create_notification(
+                NotificationCreate(
+                    userId=profile.partnerId,
+                    type="TASK_CREATED",
+                    message=f"You received a new task: '{new_task.title}'"
+                )
+            )
+        except Exception as e:
+            # Log error, but don't block task creation
+            print(f"Error creating notification for new task {new_task.id}: {e}") # Replace with proper logging
         return self.serialize(new_task)
 
 
@@ -100,6 +116,17 @@ class TaskManager(BaseManager):
         )
 
         await self.log_action("accepted_task", {"task_id": task_id})
+        # Notify creator
+        try:
+            await self.notification_manager.create_notification(
+                NotificationCreate(
+                    userId=task.creatorId,
+                    type="TASK_ACCEPTED",
+                    message=f"Your partner accepted the task: '{task.title}'"
+                )
+            )
+        except Exception as e:
+            print(f"Error creating notification for accepted task {task.id}: {e}") # Replace with proper logging
         return self.serialize(updated)
 
     async def decline_task(self, task_id: str) -> dict:
@@ -131,6 +158,17 @@ class TaskManager(BaseManager):
         )
 
         await self.log_action("declined_task", {"task_id": task_id})
+        # Notify creator
+        try:
+            await self.notification_manager.create_notification(
+                NotificationCreate(
+                    userId=task.creatorId,
+                    type="TASK_DECLINED",
+                    message=f"Your partner declined the task: '{task.title}'"
+                )
+            )
+        except Exception as e:
+            print(f"Error creating notification for declined task {task.id}: {e}") # Replace with proper logging
         return self.serialize(updated)
 
     async def bid_on_task(self, task_id: str, bid_value: int) -> dict:
@@ -168,6 +206,17 @@ class TaskManager(BaseManager):
                 }
             )
             await self.log_action("accepted_task_with_bid", {"task_id": task_id, "bid": bid_value})
+            # Notify creator
+            try:
+                await self.notification_manager.create_notification(
+                    NotificationCreate(
+                        userId=task.creatorId,
+                        type="TASK_ACCEPTED",
+                        message=f"Your partner accepted task '{task.title}' with a bid of {bid_value}."
+                    )
+                )
+            except Exception as e:
+                print(f"Error creating notification for accepted bid task {task.id}: {e}") # Replace with proper logging
         else:
             updated = await self._prisma.task.update(
                 where={"id": task_id},
@@ -178,6 +227,17 @@ class TaskManager(BaseManager):
                 }
             )
             await self.log_action("declined_task_with_bid", {"task_id": task_id, "bid": bid_value})
+            # Notify creator
+            try:
+                await self.notification_manager.create_notification(
+                    NotificationCreate(
+                        userId=task.creatorId,
+                        type="TASK_DECLINED",
+                        message=f"Your partner declined task '{task.title}' with a bid of {bid_value}."
+                    )
+                )
+            except Exception as e:
+                print(f"Error creating notification for declined bid task {task.id}: {e}") # Replace with proper logging
 
         return self.serialize(updated)
 
@@ -227,6 +287,17 @@ class TaskManager(BaseManager):
         )
 
         await self.log_action("completed_task", {"task_id": task_id})
+        # Notify creator
+        try:
+            await self.notification_manager.create_notification(
+                NotificationCreate(
+                    userId=task.creatorId,
+                    type="TASK_COMPLETED",
+                    message=f"Your partner marked task '{task.title}' as complete."
+                )
+            )
+        except Exception as e:
+            print(f"Error creating notification for completed task {task.id}: {e}") # Replace with proper logging
         return self.serialize(updated)
         
 
@@ -260,5 +331,35 @@ class TaskManager(BaseManager):
             data={"status": TaskStatus.completed.value, "completedAt": datetime.utcnow()}
         )
         await self.log_action("partner_forced_completion", {"task_id": task_id})
+        # Notify recipient
+        try:
+            await self.notification_manager.create_notification(
+                NotificationCreate(
+                    userId=task.recipientId,
+                    type="TASK_COMPLETED",
+                    message=f"Your partner marked task '{task.title}' as complete (forced)."
+                )
+            )
+        except Exception as e:
+            print(f"Error creating notification for force completed task {task.id}: {e}") # Replace with proper logging
         return self.serialize(updated)
+    async def find_expired_tasks(self) -> list:
+        """Find tasks past their deadline"""
+        now = datetime.now(timezone.utc)
+        return await self._prisma.task.find_many(
+            where={
+                "status": "PENDING",
+                "acceptanceDeadline": {"lt": now}
+            }
+        )
+
+    async def mark_task_expired(self, task_id: str) -> dict:
+        """Mark task as expired"""
+        updated = await self._prisma.task.update(
+            where={"id": task_id},
+            data={"status": "EXPIRED"}
+        )
+        await self.log_action("marked_task_expired", {"task_id": task_id})
+        return self.serialize(updated)
+
 

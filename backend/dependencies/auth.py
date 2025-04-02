@@ -2,7 +2,7 @@ import os
 import httpx
 import time
 import logging
-from fastapi import Request, HTTPException
+from fastapi import Request, HTTPException, Header
 from app.core.db import prisma
 
 logger = logging.getLogger(__name__)
@@ -76,3 +76,9 @@ async def get_current_user_id(request: Request) -> str:
             del _auth_cache[key]
     
     return user_id
+
+
+def verify_cron_key(key: str = Header(...)):
+    """Verify the cron job secret key"""
+    if key != os.getenv("CRON_SECRET_KEY"):
+        raise HTTPException(status_code=401, detail="Invalid cron key")
