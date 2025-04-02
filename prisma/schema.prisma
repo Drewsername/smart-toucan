@@ -23,6 +23,7 @@ model Profile {
 
   sentTasks       Task[]    @relation("TaskCreator")
   receivedTasks   Task[]    @relation("TaskRecipient")
+  notifications   Notification[] // Added relation back to Notification
 }
 
 
@@ -122,6 +123,17 @@ model Task {
   completedAt           DateTime?
 }
 
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      Profile  @relation(fields: [userId], references: [id])
+  type      String   // e.g., 'TASK_COMPLETED', 'REWARD_REDEEMED', 'NEW_TASK', 'TASK_TIMEOUT', 'PAIRING_UPDATE'
+  message   String
+  isRead    Boolean  @default(false)
+  referenceLink String?  // Relative URL path to referenced resource (e.g. "/tasks/123")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-
-
+  @@index([userId])
+  @@index([isRead])
+}
