@@ -3,6 +3,13 @@
     "prisma": "^6.5.0"
   },
   "dependencies": {
-    "@prisma/client": "^6.5.0"
+    "@prisma/client": "^6.5.0",
+    "@tanstack/react-query": "^5.71.3"
+  },
+  "scripts": {
+    "dev": "tanstack dev",
+    "build": "tanstack build",
+    "preview": "tsx scripts/preview.ts"
+
   }
 }

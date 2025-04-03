@@ -1,5 +1,6 @@
 // src/ssr.tsx
 /// <reference types="vinxi/types/server" />
+import './styles/app.css'
 import {
   createStartHandler,
   defaultStreamHandler,

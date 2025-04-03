@@ -7,12 +7,12 @@ import {
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { createServerFn } from '@tanstack/react-start'
+import appCss from"../styles/app.css?url"
 import * as React from 'react'
 import { DefaultCatchBoundary } from '../components/DefaultCatchBoundary'
 import { NotFound } from '../components/NotFound'
-import '../styles/app.css'
 import { seo } from '../utils/seo'
-import { getSupabaseServerClient } from '../utils/supabase'
+import { getSupabaseServerClient } from '../utils/supabase.server'
 
 const fetchUser = createServerFn({ method: 'GET' }).handler(async () => {
   const supabase = await getSupabaseServerClient()
@@ -59,8 +59,8 @@ export const Route = createRootRoute({
         sizes: '16x16',
         href: '/favicon-16x16.png',
       },
-      { rel: 'manifest', href: '/site.webmanifest', color: '#fffff' },
       { rel: 'icon', href: '/favicon.ico' },
+      { rel: 'stylesheet', href: appCss },
     ],
   }),
   beforeLoad: async () => {

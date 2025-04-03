@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { supabaseBrowserClient } from "@/utils/supabase.client"
 
 import mascot from "@/assets/mascot/toucan-mascot-01.svg"
 
@@ -18,10 +19,10 @@ export function LoginForm({
         <div className="flex flex-col items-center gap-2 text-center">
             <img src={mascot} alt="Mascot" className="w-32 h-32" />
         </div>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-2xl font-bold">Login to your account</h1>
+        <div className="flex flex-col items-center gap-2 text-center w-full">
+          <h1 className="text-2xl font-bold">Welcome Back!</h1>
           <p className="text-muted-foreground text-sm text-balance">
-            It's time to Toucan!
+            It's disappointing you were ever away.
           </p>
         </div>
       </div>
@@ -52,9 +53,21 @@ export function LoginForm({
             Or continue with
           </span>
         </div>
-        <Button variant="outline" className="w-full">
+        <Button
+          variant="outline"
+          className="w-full"
+          type="button"
+          onClick={async () => {
+            await supabaseBrowserClient.auth.signInWithOAuth({
+              provider: 'google',
+              options: {
+                redirectTo: window.location.origin,
+              },
+            })
+          }}
+        >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-
+            {/* You might want to add a Google icon SVG here */}
           </svg>
           Login with Google
         </Button>

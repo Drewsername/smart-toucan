@@ -7,4 +7,20 @@ import { createRouter } from './router'
 
 const router = createRouter()
 
-hydrateRoot(document, <StartClient router={router} />)
+/**
+ * Hydrates the React application on the client side
+ */
+function hydrateApplication() {
+  hydrateRoot(document, <StartClient router={router} />)
+}
+
+// Initialize hydration
+hydrateApplication()
+
+/**
+ * Default export function that matches the existing hydration logic
+ * Can be imported and used in other files if needed
+ */
+export default function hydrate() {
+  return <StartClient router={router} />
+}

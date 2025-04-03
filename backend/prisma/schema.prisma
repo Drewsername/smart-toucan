@@ -9,28 +9,27 @@ datasource db {
 }
 
 model Profile {
-  id              String    @id @default(uuid())
-  createdAt DateTime @default(now())
-  email           String    @unique
-  partnerId       String?   @unique
-  partner         Profile?  @relation("UserPartner", fields: [partnerId], references: [id])
-  partnerOf       Profile[] @relation("UserPartner")
+  id         String    @id @default(uuid()) @db.Uuid
+  createdAt  DateTime  @default(now())
+  email      String    @unique
+  partnerId  String?   @unique @db.Uuid
+  partner    Profile?  @relation("UserPartner", fields: [partnerId], references: [id])
+  partnerOf  Profile[] @relation("UserPartner")
 
   rewards         Reward[]  @relation("RewardRecipient")
   createdRewards  Reward[]  @relation("RewardCreator")
   redemptions     Redemption[]
   pairingCodes    PairingCode[]
-
   sentTasks       Task[]    @relation("TaskCreator")
   receivedTasks   Task[]    @relation("TaskRecipient")
-  notifications   Notification[] // Added relation back to Notification
+  notifications   Notification[]
 }
 
 
 model PairingCode {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid()) @db.Uuid
   code      String   @unique
-  userId    String
+  userId    String   @db.Uuid
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
   
@@ -42,13 +41,13 @@ model PairingCode {
 }
 
 model Reward {
-  id            String        @id @default(uuid())
+  id            String        @id @default(uuid()) @db.Uuid
   title         String
   description   String?
   points        Int
-  creatorId     String
-  recipientId   String?
-  categoryId    String?
+  creatorId     String    @db.Uuid
+  recipientId   String?   @db.Uuid
+  categoryId    String?   @db.Uuid
   redemptionUnit           String
   redemptionUnitStepSize  Int
   priceScalingFunction    String
@@ -73,9 +72,9 @@ model Reward {
 }
 
 model Redemption {
-  id        String   @id @default(uuid())
-  userId    String
-  rewardId  String
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  rewardId  String   @db.Uuid
   createdAt DateTime @default(now())
 
   user   Profile @relation(fields: [userId], references: [id])
@@ -92,7 +91,7 @@ enum TaskStatus {
 }
 
 model Task {
-  id                    String   @id @default(uuid())
+  id                    String   @id @default(uuid()) @db.Uuid
   title                 String
   description           String
   hasTimeLimit          Boolean
@@ -109,8 +108,8 @@ model Task {
   failurePenaltyPoints  Int
   status                TaskStatus
 
-  creatorId             String
-  recipientId           String
+  creatorId             String   @db.Uuid
+  recipientId           String   @db.Uuid
 
   creator   Profile @relation("TaskCreator", fields: [creatorId], references: [id])
   recipient Profile @relation("TaskRecipient", fields: [recipientId], references: [id])
@@ -124,8 +123,8 @@ model Task {
 }
 
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
   user      Profile  @relation(fields: [userId], references: [id])
   type      String   // e.g., 'TASK_COMPLETED', 'REWARD_REDEEMED', 'NEW_TASK', 'TASK_TIMEOUT', 'PAIRING_UPDATE'
   message   String

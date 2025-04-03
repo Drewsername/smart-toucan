@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { Login } from '../components/Login'
-import { getSupabaseServerClient } from '../utils/supabase'
+import { getSupabaseServerClient } from '../utils/supabase.server'
 
 export const loginFn = createServerFn()
   .validator((d) => d as { email: string; password: string })
