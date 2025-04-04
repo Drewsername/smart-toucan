@@ -1,9 +1,14 @@
 {
   "include": ["**/*.ts", "**/*.tsx", "postcss.config.mjs"],
+  "exclude": [
+    "node_modules",
+    "postcss.config.mjs"
+  ],
   "compilerOptions": {
     "strict": true,
     "esModuleInterop": true,
     "jsx": "react-jsx",
+    "types":["react"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
@@ -18,7 +23,6 @@
       "@/*": ["./src/*"],
       "~/*": ["./src/*"],
       "@/components/*": ["./src/components/*"]
-    },
-    "noEmit": true
+    }
   }
 }

@@ -1,11 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { supabase } from "../utils/supabase.client";
 import { RealtimeManager } from "@/lib/RealtimeManager";
 
-const supabase = createBrowserClient(
-  import.meta.env.VITE_SUPABASE_URL!,
-  import.meta.env.VITE_SUPABASE_ANON_KEY!
-);
 
 const EDGE_FUNCTION_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_REF}.supabase.co/functions/v1`;
 

@@ -1,6 +1,6 @@
 // src/client.tsx
 /// <reference types="vinxi/types/client" />
-import './styles/app.css'
+// CSS is now imported via __root.tsx to avoid duplicate imports
 import { hydrateRoot } from 'react-dom/client'
 import { StartClient } from '@tanstack/react-start'
 import { createRouter } from './router'

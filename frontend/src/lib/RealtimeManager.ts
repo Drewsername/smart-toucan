@@ -1,9 +1,4 @@
-import { createBrowserClient } from "@supabase/ssr";
-
-const supabase = createBrowserClient(
-  import.meta.env.VITE_SUPABASE_URL!,
-  import.meta.env.VITE_SUPABASE_ANON_KEY!
-);
+import { supabase } from "../utils/supabase.client";
 
 type FilterKey = "creatorId" | "recipientId" | "userId";
 type Callback = (payload: any) => void;

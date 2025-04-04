@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { Login } from '../components/Login'
 import { getSupabaseServerClient } from '../utils/supabase.server'
@@ -21,16 +21,18 @@ export const loginFn = createServerFn()
   })
 
 export const Route = createFileRoute('/_authed')({
-  beforeLoad: ({ context }) => {
+  beforeLoad: ({ context, location }) => {
     if (!context.user) {
-      throw new Error('Not authenticated')
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: location.href,
+        },
+      })
     }
   },
   errorComponent: ({ error }) => {
-    if (error.message === 'Not authenticated') {
-      return <Login />
-    }
-
-    throw error
+    console.error("Error in _authed route:", error);
+    return <div>An unexpected error occurred.</div>;
   },
 })

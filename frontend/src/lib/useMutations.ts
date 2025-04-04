@@ -1,12 +1,7 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
-import { createBrowserClient } from "@supabase/ssr";
+import { supabase } from "../utils/supabase.client";
 import * as mutations from "@/lib/mutations";
-
-const supabase = createBrowserClient(
-  import.meta.env.VITE_SUPABASE_URL!,
-  import.meta.env.VITE_SUPABASE_ANON_KEY!
-);
 
 export function useMutations() {
   const wrap = useCallback(
