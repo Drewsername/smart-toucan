@@ -5,9 +5,9 @@ from app.logic.base_manager import BaseManager
 from app.logic.notification_manager import NotificationManager
 from app.schemas.notification import NotificationCreate
 class RewardManager(BaseManager):
-    def __init__(self, db: Depends, user_id: str | None = None):
-        super().__init__(db, user_id)
-        self.notification_manager = NotificationManager(db, user_id)
+    def __init__(self, user_id: str):
+        super().__init__(user_id)
+        self.notification_manager = NotificationManager(user_id)
 
     async def create_reward(self, reward_data: dict) -> dict:
         user = await self.get_user_or_403(refresh=True)

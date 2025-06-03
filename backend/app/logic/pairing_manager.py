@@ -8,9 +8,9 @@ import time
 
 
 class PairingManager(BaseManager):
-    def __init__(self, db: Depends, user_id: str | None = None):
-        super().__init__(db, user_id)
-        self.notification_manager = NotificationManager(db, user_id)
+    def __init__(self, user_id: str):
+        super().__init__(user_id)
+        self.notification_manager = NotificationManager(user_id)
 
     def _hash_to_code(self, input_str: str) -> str:
         hash_bytes = hashlib.sha256(input_str.encode()).digest()
