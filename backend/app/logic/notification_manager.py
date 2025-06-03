@@ -165,5 +165,3 @@ class NotificationManager(BaseManager):
         except Exception as e:
             logger.error(f"Failed to create task expired notification: {e}")
             return None
-
-        return count
